@@ -5,30 +5,65 @@ import { useEffect, useState } from "react";
   - key: the key on localStorage where we are saving this data
   - initialValue: the initial value of state
 */
+
+function setLocalStorageValue(key, value){
+  const stringValue = JSON.stringify(value);
+  localStorage.setItem(key, stringValue);
+}
+
+function getLocalStorageValue(key){
+  const stringValue = localStorage.getItem(key);
+  try {
+    return JSON.parse(stringValue);
+  }
+  catch {}
+  return stringValue;
+}
+
 export function useLocalStorage(key, initialValue) {
   /* 
     ✅ in this hook, use the useState hook. For the initial value for state:
     use the value saved in localStorage OR the initialValue from the function parameters 
   */
-
+ const storedValue = getLocalStorageValue(key);
+  const [data, setData] = useState(storedValue || initialValue);
   /* 
    ✅ write a useEffect hook 
    in the useEffect, when state is updated, save the state to localStorage
    don't forget the dependencies array!
   */
-  useEffect(() => {});
+  useEffect(() => {
+    setLocalStorageValue(key, data);
+  }, [key, data]);
+
+  //useEffect hook to listen for the storage event and keep the state from one window in sync with the state of other windows
+  useEffect(() => {
+    function handleStorageChange(){
+      const newStoredValue = getLocalStorageValue(key);
+      setData(newStoredValue);
+    }
+
+    //listen to storage event on window
+    window.addEventListener("storage", handleStorageChange);
+
+    //cleanup function
+    return function cleanUpEventListener(){
+      window.removeEventListener("storage", handleStorageChange);
+    }
+  })
 
   /* 
    ✅ return the same interface as useState:
    an array with state and a setState function
   */
   // 👀 return [state, setState]
+  return [data, setData];
 }
 
 function Form() {
   // ✅ after implementing the useLocalStorage hook, replace useState with useLocalStorage
   // don't forget to pass in both arguments (a key and an initialValue)
-  const [name, setName] = useState("");
+  const [name, setName] = useLocalStorage("name", "");
   console.log(name);
 
   return (
